@@ -177,24 +177,29 @@ export function useScaleBle(): UseScaleBleReturn {
   };
 
   const sendStartCommand = async () => {
+    // Hvis der ikke er en aktiv BLE-forbindelse til en vægt stopper den og giver en fejlbesked
     if (!connectedDeviceId) {
       Alert.alert("Fejl", "Ingen enhed forbundet");
       return;
     }
 
+    // Hent BLE manageren fra ref
     const manager = managerRef.current;
     if (!manager) return;
 
     try {
       console.log("Sending START command...");
 
+      // Sørger for, at vi faktisk er forbundet til enheden
       const device = await manager.connectToDevice(connectedDeviceId);
+      // Sørger for at alle services + characteristics er loaded
       await device.discoverAllServicesAndCharacteristics();
 
+      // Skriver kommandoen "START" til vægtens command-characteristic
       await device.writeCharacteristicWithResponseForService(
-        SERVICE_UUID,
-        COMMAND_CHAR_UUID,
-        base64.encode("START")
+        SERVICE_UUID,           // Servicen  vi skriver til
+        COMMAND_CHAR_UUID,      // Characteristicen i servicen
+        base64.encode("START")  // Encoder payload i Base64
       );
 
       console.log("START command sent ✔️");
@@ -240,24 +245,29 @@ export function useScaleBle(): UseScaleBleReturn {
   };
 
   const sendConfirmResult = async () => {
+    // Hvis der ikke er en aktiv BLE-forbindelse til en vægt stopper den og giver en fejlbesked
     if (!connectedDeviceId) {
       Alert.alert("Fejl", "Ingen enhed forbundet");
       return;
     }
 
+    // Hent BLE manageren fra ref
     const manager = managerRef.current;
     if (!manager) return;
 
     try {
       console.log("Sending CONFIRM_RESULT command...");
 
+      // Sørger for, at vi faktisk er forbundet til enheden
       const device = await manager.connectToDevice(connectedDeviceId);
+      // Sørger for at alle services + characteristics er loaded
       await device.discoverAllServicesAndCharacteristics();
 
+      // Skriver kommandoen "CONFIRM_RESULT" til vægtens command-characteristic
       await device.writeCharacteristicWithResponseForService(
-        SERVICE_UUID,
-        COMMAND_CHAR_UUID,
-        base64.encode("CONFIRM_RESULT")
+        SERVICE_UUID,                         // Servicen  vi skriver til
+        COMMAND_CHAR_UUID,                    // Characteristicen i servicen
+        base64.encode("CONFIRM_RESULT")       // Encoder payload i Base64
       );
 
       console.log("CONFIRM_RESULT command sent ✔️");
