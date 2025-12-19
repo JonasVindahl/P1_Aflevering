@@ -19,7 +19,7 @@ BLECharacteristic *pWeightDataCharacteristic; //Et pointer til en Bluetooth-egen
 
 
 /*
-   2) Navne og UUIDs: Disse linjer definerer enhedens identitet og de unikke UUID'er (Universally Unique Identifiers).
+	2) Navne og UUIDs: Disse linjer definerer enhedens identitet og de unikke UUID'er (Universally Unique Identifiers).
     Navnet gør den synlig for brugeren, mens de unikke UUIDs fungerer som adresser henholdsvis servicen (mappen) og de specifikke datafelter.
     Disse adresser hjælper med at styre brugerinfo og vægtdata
 */
@@ -78,16 +78,16 @@ class UserInfoCallbacks : public BLECharacteristicCallbacks {
 
 		if (userPos >= 0) {
 			int sep = raw.indexOf(';', userPos); //Hvis user findes -> leder efter semikolon efter "USER:" for at finde slutningen af værdien
-      if (sep < 0) {
+		if (sep < 0) {
         Serial.println("ERROR, no separation found for USER");
         return;
-      }
+    	}
       currentUserId = raw.substring(userPos + 5, sep); // 5 tegne = længden af "USER:" -> udrager det, der står efter "USER:"
 		}
     if (matPos >= 0) {
-      int sep = raw.indexOf(';', matPos);
-      if (sep < 0) sep = raw.length(); // For begge. Hvis materialet står sidst uden semikolon, bruger vi bare slutningen af strengen
-      currentMaterial = raw.substring(matPos + 4, sep); // 4 = længden af "MAT:" -> uddrager materialet efter "MAT:"
+    	int sep = raw.indexOf(';', matPos);
+    	if (sep < 0) sep = raw.length(); // For begge. Hvis materialet står sidst uden semikolon, bruger vi bare slutningen af strengen
+    	currentMaterial = raw.substring(matPos + 4, sep); // 4 = længden af "MAT:" -> uddrager materialet efter "MAT:"
     }
 
     // Debug print -> udskriver det som er blevet modtaget. (Parse: program analyserer rå data eller kode og omdanner det til et struktureret format)
@@ -102,45 +102,59 @@ class UserInfoCallbacks : public BLECharacteristicCallbacks {
 
 // "CommandCallbacks" er en C++ klasse, der ved at arve fra "BLECharacteristicCallbacks" muliggør reaktion på BLE-skrivehandlinger. "onWrite()"" er metoden, der automatisk køres, når en telefonen skriver data til den tilknyttede "COMMAND-characteristic"
 class CommandCallbacks : public BLECharacteristicCallbacks {
-  void onWrite(BLECharacteristic *pCharacteristic) override {
+	void onWrite(BLECharacteristic *pCharacteristic) override {
 		String cmd = String(pCharacteristic->getValue().c_str()); // Henter bytes/stren som klienten skrev -> konverterer den til et C-stil const char -> laver en arduino string (nemt sammenligne tekst)
         // Linje ovenpå henter kommandoen sendt fra telefonen ("START" eller "CONFIRM_RESULT") og gemmed den i cmd
-    Serial.print("COMMAND: ");
-    Serial.println(cmd);
+		Serial.print("COMMAND: ");
+		Serial.println(cmd);
 
     if (cmd == "START") {
-      Serial.println("-> START command received"); // Hvis cmd er "START", så printer den at start-kommando er modtaget
-      Serial.print("   For USER: ");
-      Serial.print(currentUserId);
-      Serial.print("  MATERIAL: ");
-      Serial.println(currentMaterial); // De 4 linjer ovenfor printer den bruger-ID og materiale som blev modtaget tidligere via USER_INFO characteristic og udskriver ekstra kontekst -> hvilket currentUserId og currentMaterial der er gældende for denne start-kommando.
-			weight_start = true; // Sætter global variabel weight_start til true, hvilket signalerer til hovedprogrammet at en vejning skal starte
-			weight_stable = false; // Sætter weight_stable til false, da vægten endnu ikke er stabil ved start
+    	Serial.println("-> START command received"); // Hvis cmd er "START", så printer den at start-kommando er modtaget
+    	Serial.print("   For USER: ");
+    	Serial.print(currentUserId);
+    	Serial.print("  MATERIAL: ");
+    	Serial.println(currentMaterial); // De 4 linjer ovenfor printer den bruger-ID og materiale som blev modtaget tidligere via USER_INFO characteristic og udskriver ekstra kontekst -> hvilket currentUserId og currentMaterial der er gældende for denne start-kommando.
+		weight_start = true; // Sætter global variabel weight_start til true, hvilket signalerer til hovedprogrammet at en vejning skal starte
+		weight_stable = false; // Sætter weight_stable til false, da vægten endnu ikke er stabil ved start
     }
-		else if (cmd == "CONFIRM_RESULT") //Hvis kommandoen ikke var START men "CONFIRM_RESULT", køres den blok. Det er kommandoen klienten bruger til at bede enheden om at "bekræfte" den målte vægt -> færdiggøre processen{
-      if (!weight_stable) {
-        Serial.println("-> ERROR: Cannot confirm - weight not stable yet"); // Hvis vægten ikke er stabil endnu (weight_stable er false), printer den en fejlmeddelelse
-        pCommandCharacteristic->setValue("ERROR_NOT_READY"); // Sætter værdien af COMMAND-characteristic til "ERROR_NOT_READY", som klienten kan læse for at forstå at bekræftelsen mislykkedes fordi vægten ikke er klar
-        return; // Afslutter funktionen tidligt, så resten af koden i denne blok ikke køres
-      }
+		else if (cmd == "CONFIRM_RESULT"){ //Hvis kommandoen ikke var START men "CONFIRM_RESULT", køres den blok. Det er kommandoen klienten bruger til at bede enheden om at "bekræfte" den målte vægt -> færdiggøre processen
+			if (!weight_stable) {
+			Serial.println("-> ERROR: Cannot confirm - weight not stable yet"); // Hvis vægten ikke er stabil endnu (weight_stable er false), printer den en fejlmeddelelse
+			pCommandCharacteristic->setValue("ERROR_NOT_READY"); // Sætter værdien af COMMAND-characteristic til "ERROR_NOT_READY", som klienten kan læse for at forstå at bekræftelsen mislykkedes fordi vægten ikke er klar
+			return; // Afslutter funktionen tidligt, så resten af koden i denne blok ikke køres
+			}
 
-      Serial.println("-> CONFIRM_RESULT command received"); // Hvis vægten er stabil, printer den at bekræftelseskommandoen er modtaget
-      Serial.print("\nConfirmed weight: "); // Printer den bekræftede vægt
-      Serial.print(weightkg, 1); // Viser vægten med 1 decimal
-      Serial.print("kg\nfor USER: "); // Printer "kg for USER:"
-      Serial.print(currentUserId); //Printer bruger ID
-      Serial.print("\nMATERIAL: "); //Printer "MATERIAL:"
-      Serial.println(currentMaterial); //Printer materiale
+			Serial.println("-> CONFIRM_RESULT command received"); // Hvis vægten er stabil, printer den at bekræftelseskommandoen er modtaget
+			Serial.print("\nConfirmed weight: "); // Printer den bekræftede vægt
+			Serial.print(weightkg, 1); // Viser vægten med 1 decimal
+			Serial.print("kg\nfor USER: "); // Printer "kg for USER:"
+			Serial.print(currentUserId); //Printer bruger ID
+			Serial.print("\nMATERIAL: "); //Printer "MATERIAL:"
+			Serial.println(currentMaterial); //Printer materiale
 
-      // Reset for next measurement
-      weight_start = false; // Stopper måletilstand
-      weight_stable = false; // Rydder stabilitetsflag
-      oldWeight = 0; //nulstiller gammel vægt
+			// Reset for next measurement
+			weight_start = false; // Stopper måletilstand
+			weight_stable = false; // Rydder stabilitetsflag
+			oldWeight = 0; //nulstiller gammel vægt
 
-      // TODO: send data til database her
-    }
-  }
-};
+			// TODO: send data til database her
+		}
+	}
+}
+
+
+	// Holder øje med forbindelsen mellem mobil og ESP32
+	class MyServerCallbacks: public BLEServerCallbacks {
+		void onConnect(BLEServer* pServer) {
+			isConnected = true;
+		};
+		void onDisconnect(BLEServer* pServer) {
+			isConnected = false;
+			weight_start = false;
+			weight_stable = false;
+			BLEDevice::startAdvertising(); //Starter faktisk advertising med den nye information, så mobiler kan finde den
+		}
+	};
 
 void setup() // Setup-funktionen kører en gang ved opstart af enheden
 {
@@ -151,39 +165,40 @@ void setup() // Setup-funktionen kører en gang ved opstart af enheden
 	pUserInfoCharacteristic = pService->createCharacteristic( // Opretter en characteristic (en "fil" i mappen), denne kan læses og skrives af mobil-appen, bruges til at sende/bruge user info
     USER_INFO_CHAR_UUID,
     BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_READ
-  );
-  pCommandCharacteristic = pService->createCharacteristic( //En anden characteristic til kommandoer fra appen (START, CONFIRM_RESULT), Mobilen må læse og skrive
+	);
+	pCommandCharacteristic = pService->createCharacteristic( //En anden characteristic til kommandoer fra appen (START, CONFIRM_RESULT), Mobilen må læse og skrive
     COMMAND_CHAR_UUID,
     BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_READ
-  );
-	  pWeightDataCharacteristic = pService->createCharacteristic( //Characteristic til vægtdata, som enheden sender notifikationer om til appen (når vægten ændres), Kan læses og notifies, så mobilen automatisk får nye målresultater
+	);
+	pWeightDataCharacteristic = pService->createCharacteristic( //Characteristic til vægtdata, som enheden sender notifikationer om til appen (når vægten ændres), Kan læses og notifies, så mobilen automatisk får nye målresultater
     WEIGHT_DATA_CHAR_UUID,
     BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_READ
-  );
+	);
 
-  // Callbacks - sætter de klasser der håndterer skrivninger til de forskellige characteristics
-  pUserInfoCharacteristic->setCallbacks(new UserInfoCallbacks()); //Sætter en callback, der reagerer når user info skrives
-  pCommandCharacteristic->setCallbacks(new CommandCallbacks()); //Sætter callback for kommandoer (fx når appen sender "START")
-  pWeightDataCharacteristic->addDescriptor(new BLE2902()); // Gør det muligt for smartphones at aktivere notifikationer (meget vigtigt især for iPhone)
+	// Callbacks - sætter de klasser der håndterer skrivninger til de forskellige characteristics
+	pUserInfoCharacteristic->setCallbacks(new UserInfoCallbacks()); //Sætter en callback, der reagerer når user info skrives
+	pCommandCharacteristic->setCallbacks(new CommandCallbacks()); //Sætter callback for kommandoer (fx når appen sender "START")
+	pWeightDataCharacteristic->addDescriptor(new BLE2902()); // Gør det muligt for smartphones at aktivere notifikationer (meget vigtigt især for iPhone)
 
-  //Standardværdier 
-  pUserInfoCharacteristic->setValue("NO_USER"); // Standardværdi: ingen bruger valgt
-  pCommandCharacteristic->setValue("READY"); // Standardværdi: enheden er klar
-  pWeightDataCharacteristic->setValue("0.0"); // Sender vægten som 0.0, før målinger starter
+	//Standardværdier 
+	pUserInfoCharacteristic->setValue("NO_USER"); // Standardværdi: ingen bruger valgt
+	pCommandCharacteristic->setValue("READY"); // Standardværdi: enheden er klar
+	pWeightDataCharacteristic->setValue("0.0"); // Sender vægten som 0.0, før målinger starter
 
-	  // Start "mappen"
-  pService->start(); // Starter BLE-servicen, så den er klar til at modtage forbindelser og data (karakteristiks kan bruges)
+	// Start "mappen"
+	pService->start(); // Starter BLE-servicen, så den er klar til at modtage forbindelser og data (karakteristiks kan bruges)
+	pServer->setCallbacks(new MyServerCallbacks());
 
-  // Advertising - Gør enheden synlig for mobiltelefoner
+	// Advertising - Gør enheden synlig for mobiltelefoner
 	BLEAdvertising *pAdvertising = BLEDevice::getAdvertising(); //Henter et advertising-objekt til at konfigurere udsendelsen af Bluetooth-signaler
 	pAdvertising->addServiceUUID(SERVICE_UUID); //Tilfjøer mappen til advertising (service UUID), så telefonen kan se, hvilken service enheden tilbyder
-  // Helps with iPhone pairing
-  pAdvertising->setScanResponse(true); //Tilføjer et ekstra svar, som gør pairing bedre - især på iPhones
-  pAdvertising->setMinPreferred(0x12); //Sætter minimum pause mellem scan-requests, forbedrer stabilitet
+	// Helps with iPhone pairing
+	pAdvertising->setScanResponse(true); //Tilføjer et ekstra svar, som gør pairing bedre - især på iPhones
+	pAdvertising->setMinPreferred(0x12); //Sætter minimum pause mellem scan-requests, forbedrer stabilitet
 
-  BLEDevice::startAdvertising(); //Starter faktisk advertising med den nye information, så mobiler kan finde den
+	BLEDevice::startAdvertising(); //Starter faktisk advertising med den nye information, så mobiler kan finde den
 
-	 // Bluetooth device name
+	// Bluetooth device name
 	Serial.println("Bluetooth started, waiting for connection..."); //Skriver til Serial Monitor, at Bluetooth nu er aktiv og venter på en mobilforbindelse
 
 
@@ -303,7 +318,7 @@ void loop()
 
 
 
-	if(weight_start){
+	if(weight_start && isConnected){
 		float weightg = scale.get_units(10);
 		weightkg = weightg / 1000; // Update global weightkg
 
